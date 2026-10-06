@@ -22,9 +22,10 @@
     </div>
     {% if billed_services %}
     <div class="card wide">
-      <p class="empty">Spend only available for: {{ billed_services | join(', ') }}. {{ unbilled_services | join(', ') }} export{{ 's' if unbilled_services|length != 1 }} no pricing data.</p>
+      <p class="empty">Spend only available for: {{ billed_services | join(', ') }}. {{ unbilled_services | join(', ') }} export{{ unbilled_services | pluralize }} no pricing data.</p>
     </div>
     {% endif %}
+    {{ m.worth_it_card(summary) }}
     <div class="card wide">
       <h2>Most-watched titles, across all services</h2>
       <div class="chart-wrap"><canvas id="topTitlesChart"></canvas></div>
@@ -39,5 +40,5 @@
   "hoursPerMonth": hours_per_month,
   "topTitles": top_titles,
 } | tojson }}</script>
-<script src="{{ url_for('static', filename='js/overview.js') }}"></script>
+<script src="/static/js/overview.js"></script>
 {% endblock %}

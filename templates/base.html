@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ title }}</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   :root {
@@ -80,7 +81,8 @@
   .card .chart-wrap { position: relative; height: 260px; }
   .card .empty { color: var(--text-muted); font-size: 13px; }
 
-  .tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+  .tabs .divider { width: 1px; align-self: stretch; background: var(--gridline); margin: 0 4px; }
   .tabs a {
     color: var(--text-secondary);
     text-decoration: none;
@@ -130,23 +132,34 @@
     white-space: nowrap;
   }
   .watch-table th .sort-arrow { color: var(--text-muted); }
-  .watch-table td { padding: 6px 10px; border-bottom: 1px solid var(--gridline); }
+  .watch-table td { padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
   .watch-table th.num, .watch-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .watch-table tbody tr:nth-child(even) { background: var(--page); }
+  .watch-table tbody tr:hover { background: var(--gridline); }
+  .watch-table td:first-child {
+    max-width: 0;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>
 </head>
 <body>
 <main>
   <nav class="tabs">
-    <a href="/" class="{{ 'active' if active_key == 'all' }}">All services</a>
+    <img src="/static/favicon.svg" alt="" width="22" height="22" style="border-radius: 5px;">
+    <a href="/" class="{% if active_key == 'all' %}active{% endif %}">All services</a>
+    <span class="divider"></span>
     {% for key, svc in services.items() %}
-    <a href="/{{ key }}" class="{{ 'active' if key == active_key }}">{{ svc.name }}</a>
+    <a href="/{{ key }}" class="{% if key == active_key %}active{% endif %}">{{ svc.name }}</a>
     {% endfor %}
   </nav>
 
   {% block content %}{% endblock %}
 </main>
 
-<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="/static/js/charts.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

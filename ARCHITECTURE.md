@@ -11,12 +11,18 @@ streaming/          data access - parses each service's export into a common sha
   primevideo.py        PrimeVideoService(StreamingService)
   analytics.py         aggregates over ViewingEvent/BillingEvent streams - service-agnostic
 
-app.py               Flask routes - wire a service's events through analytics into a template
+app.py               stdlib http.server + Jinja2 - wire a service's events through analytics into a template
 
 templates/
-  base.html             shared chrome: palette, nav tabs, range filter, table search/sort JS
+  _macros.html          shared markup: stat tiles, range filter, worth-it/time-equivalents/table cards
+  base.html             shared chrome: palette, nav tabs
   index.html            single-service dashboard (extends base.html)
   overview.html         all-services combined dashboard (extends base.html)
+
+static/js/
+  charts.js             shared Chart.js helpers + table search/sort
+  dashboard.js          chart wiring for index.html
+  overview.js           chart wiring for overview.html
 
 sample_data/         tiny synthetic exports so the app runs out of the box
 raw_data/             your own real export data
@@ -52,7 +58,7 @@ class StreamingService(ABC):
 ```
 
 Everything above `streaming/netflix.py` / `streaming/primevideo.py` - the analytics
-functions, the Flask routes, the templates - only ever sees `ViewingEvent` and
+functions, the HTTP routes, the templates - only ever sees `ViewingEvent` and
 `BillingEvent`. None of it knows Netflix or Prime Video exist. That's what makes adding a
 third service additive rather than invasive (see below).
 

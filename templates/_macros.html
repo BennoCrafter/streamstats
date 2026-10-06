@@ -9,7 +9,7 @@
 {% macro range_filter(range_options, range_key) %}
 <div class="range-filter">
   {% for key, label, _ in range_options %}
-  <a href="?range={{ key }}" class="{{ 'active' if key == range_key }}">{{ label }}</a>
+  <a href="?range={{ key }}" class="{% if key == range_key %}active{% endif %}">{{ label }}</a>
   {% endfor %}
 </div>
 {% endmacro %}
@@ -28,6 +28,18 @@
 </div>
 {% endmacro %}
 
+{% macro worth_it_card(summary) %}
+{% if summary.has_billing %}
+<div class="card wide">
+  <h2>Was it worth it?</h2>
+  <p class="empty">
+    {{ summary.cost_per_hour }} {{ summary.currency }}/h watched, vs. roughly {{ summary.cinema_cost_per_hour }} {{ summary.currency }}/h for a cinema ticket (~11 for a 2h film) &mdash;
+    {% if summary.cheaper_than_cinema %}cheaper than going to the movies.{% else %}pricier than a night at the cinema, per hour.{% endif %}
+  </p>
+</div>
+{% endif %}
+{% endmacro %}
+
 {% macro watch_table_card(watched_titles) %}
 <div class="card wide">
   <h2>Everything watched</h2>
@@ -40,7 +52,7 @@
       <thead><tr><th>Title</th><th class="num">Hours</th><th class="num">Sessions</th><th>Last watched</th></tr></thead>
       <tbody>
         {% for row in watched_titles %}
-        <tr><td>{{ row.title }}</td><td class="num">{{ row.hours }}</td><td class="num">{{ row.sessions }}</td><td>{{ row.last_watched }}</td></tr>
+        <tr><td title="{{ row.title }}">{{ row.title }}</td><td class="num">{{ row.hours }}</td><td class="num">{{ row.sessions }}</td><td>{{ row.last_watched }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
