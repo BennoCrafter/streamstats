@@ -124,13 +124,16 @@ def format_duration(total_hours: float) -> str:
     return ", ".join(parts)
 
 
-# label, hours per unit - rough, widely-cited durations for a relatable comparison
+# label, hours per unit - rough, widely-cited durations, picked to sting a little
 _TIME_EQUIVALENTS = [
-    ("feature films (2h each)", 2),
-    ("full marathons, running pace (4h each)", 4),
-    ("nights of full sleep (8h each)", 8),
-    ("standard work weeks (40h each)", 40),
-    ("learning a new language to fluency (~700h)", 700),
+    ("feature films (~2h each)", 2),
+    ("marathons, at an average finishing pace (~4.5h each)", 4.5),
+    ("cross-country flights, New York to LA (~6h each)", 6),
+    ("full nights of sleep (~8h each)", 8),
+    ("FAA commercial pilot licenses, minimum required flight hours (~250h each)", 250),
+    ("full language-fluency journeys (~700h each)", 700),
+    ("bachelor's degrees worth of class and study time (~1,800h each)", 1800),
+    ("shots at the \"10,000-hour rule\" for mastering a new skill", 10000),
 ]
 
 
