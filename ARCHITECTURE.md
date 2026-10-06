@@ -18,8 +18,8 @@ templates/
   index.html            single-service dashboard (extends base.html)
   overview.html         all-services combined dashboard (extends base.html)
 
-sample_data/         tiny synthetic exports (committed) so the app runs out of the box
-raw_data/             your own real export (gitignored - never committed, see README)
+sample_data/         tiny synthetic exports so the app runs out of the box
+raw_data/             your own real export data
 ```
 
 ## The superclass model
