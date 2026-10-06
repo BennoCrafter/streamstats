@@ -49,15 +49,9 @@ def _current_range(query):
 
 
 def _filtered(service, cutoff):
-    viewing = [
-        e for e in service.viewing_events() if cutoff is None or e.start_time >= cutoff
-    ]
+    viewing = [e for e in service.viewing_events() if cutoff is None or e.start_time >= cutoff]
     cutoff_date = cutoff.date() if cutoff else None
-    billing = [
-        e
-        for e in service.billing_events()
-        if cutoff_date is None or e.date >= cutoff_date
-    ]
+    billing = [e for e in service.billing_events() if cutoff_date is None or e.date >= cutoff_date]
     return viewing, billing
 
 
@@ -67,9 +61,7 @@ def render_overview(query):
     viewing_by_service = {}
     billing_by_service = {}
     for svc in SERVICES.values():
-        viewing_by_service[svc.name], billing_by_service[svc.name] = _filtered(
-            svc, cutoff
-        )
+        viewing_by_service[svc.name], billing_by_service[svc.name] = _filtered(svc, cutoff)
 
     all_viewing = list(chain.from_iterable(viewing_by_service.values()))
     all_billing = list(chain.from_iterable(billing_by_service.values()))
@@ -84,12 +76,8 @@ def render_overview(query):
         hours_per_month=analytics.hours_per_month_by_service(viewing_by_service),
         top_titles=analytics.top_titles(all_viewing),
         watched_titles=analytics.watched_titles(all_viewing),
-        billed_services=sorted(
-            name for name, events in billing_by_service.items() if events
-        ),
-        unbilled_services=sorted(
-            name for name, events in billing_by_service.items() if not events
-        ),
+        billed_services=sorted(name for name, events in billing_by_service.items() if events),
+        unbilled_services=sorted(name for name, events in billing_by_service.items() if not events),
     )
 
 
@@ -135,16 +123,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_static(self, rel_path):
         file_path = (STATIC_DIR / rel_path).resolve()
-        if (
-            not file_path.is_relative_to(STATIC_DIR.resolve())
-            or not file_path.is_file()
-        ):
+        if not file_path.is_relative_to(STATIC_DIR.resolve()) or not file_path.is_file():
             self._respond(404, b"Not found", "text/plain")
             return
         content_type, _ = guess_type(str(file_path))
-        self._respond(
-            200, file_path.read_bytes(), content_type or "application/octet-stream"
-        )
+        self._respond(200, file_path.read_bytes(), content_type or "application/octet-stream")
 
     def _respond_html(self, html):
         self._respond(200, html.encode("utf-8"), "text/html; charset=utf-8")
@@ -160,4 +143,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = 8001
     print(f"Serving on http://127.0.0.1:{port}")
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    try:
+        ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    except KeyboardInterrupt:
+        print("")

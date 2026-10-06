@@ -3,10 +3,12 @@
 Works for any service built on the StreamingService superclass, not just Netflix.
 """
 
+import re
 from collections import defaultdict
-from typing import Iterable
+from typing import Iterable, Optional, Tuple
 
 from .base import BillingEvent, ViewingEvent
+from .primevideo import PrimeVideoService
 
 
 def _month_key(d) -> str:
@@ -71,43 +73,82 @@ def cost_per_hour_per_month(
     }
 
 
-def _show_name(event: ViewingEvent) -> str:
-    """Fold episodes into their show: "Show: Staffel 2: ... (Folge 14)" -> "Show"."""
-    return event.title.split(":")[0].strip() or event.title
+# Prime Video joins TV episodes as "<episode>-<series> - Season N" (unspaced dash
+# only between episode and series) - a quirk specific to Prime's export, so only
+# stripped for Prime's own events below. "Season N"/"Staffel N" after a "-"/":"
+# separator is common to both services (e.g. Netflix's "Show: Season 2: Episode"),
+# so that part applies generically; its lazy match skips over an incidental unspaced
+# dash inside the show's own name (e.g. "Brooklyn Nine-Nine") since nothing with
+# "Season"/"Staffel" immediately follows it.
+_EPISODE_PREFIX = re.compile(r"^.+[^ ]-([^ ].*)$")
+_SEASON_SUFFIX = re.compile(r"^(.*?)\s*[-–:]\s*(?:Season|Staffel)\s*(\d+)\b.*$", re.IGNORECASE)
+
+
+def _show_name_and_season(event: ViewingEvent) -> Tuple[str, Optional[int]]:
+    """"Pilot-Reacher - Season 2" -> ("Reacher", 2); "Show: Season 2: Ep" -> ("Show", 2)."""
+    title = event.title
+    rest = title
+    if event.service == PrimeVideoService.name:
+        match = _EPISODE_PREFIX.match(title)
+        rest = match.group(1) if match else title
+
+    match = _SEASON_SUFFIX.match(rest)
+    if match:
+        return match.group(1).strip() or rest, int(match.group(2))
+
+    return rest.split(":")[0].strip() or rest, None
+
+
+def _display_title(show: str, seasons: set) -> str:
+    """Combine every season watched into one row: "Show" + {1, 2} -> "Show (Season 1, 2)"."""
+    if not seasons:
+        return show
+    return f"{show} (Season {', '.join(str(s) for s in sorted(seasons))})"
 
 
 def top_titles(events: Iterable[ViewingEvent], n: int = 10) -> list:
-    """[(show_title, hours), ...] sorted descending, episodes folded into their show."""
+    """[(show_title, hours), ...] sorted descending, episodes/seasons folded into their show."""
     hours = defaultdict(float)
+    seasons = defaultdict(set)
     for e in events:
-        hours[_show_name(e)] += e.duration.total_seconds() / 3600
+        show, season = _show_name_and_season(e)
+        hours[show] += e.duration.total_seconds() / 3600
+        if season is not None:
+            seasons[show].add(season)
 
     ranked = sorted(hours.items(), key=lambda kv: kv[1], reverse=True)
-    ranked = [(title, round(h, 1)) for title, h in ranked if round(h, 1) > 0]
+    ranked = [
+        (_display_title(show, seasons[show]), round(h, 1))
+        for show, h in ranked
+        if round(h, 1) > 0
+    ]
     return ranked[:n]
 
 
 def watched_titles(events: Iterable[ViewingEvent]) -> list:
-    """Every title watched, most recently watched first.
+    """Every show watched, most recently watched first, seasons folded into one row.
 
     [{"title", "hours", "sessions", "last_watched"}, ...]
     """
-    agg = defaultdict(lambda: {"hours": 0.0, "sessions": 0, "last_watched": None})
+    agg = defaultdict(lambda: {"hours": 0.0, "sessions": 0, "last_watched": None, "seasons": set()})
     for e in events:
-        row = agg[_show_name(e)]
+        show, season = _show_name_and_season(e)
+        row = agg[show]
         row["hours"] += e.duration.total_seconds() / 3600
         row["sessions"] += 1
+        if season is not None:
+            row["seasons"].add(season)
         if row["last_watched"] is None or e.start_time > row["last_watched"]:
             row["last_watched"] = e.start_time
 
     rows = [
         {
-            "title": title,
+            "title": _display_title(show, row["seasons"]),
             "hours": round(row["hours"], 1),
             "sessions": row["sessions"],
             "last_watched": row["last_watched"].date().isoformat(),
         }
-        for title, row in agg.items()
+        for show, row in agg.items()
         if round(row["hours"], 1) > 0
     ]
     rows.sort(key=lambda r: r["last_watched"], reverse=True)

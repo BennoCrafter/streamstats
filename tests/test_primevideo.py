@@ -8,12 +8,12 @@ EXPORT_ROOT = Path(__file__).parent.parent / "sample_data" / "primevideo"
 
 def test_viewing_events():
     events = list(PrimeVideoService(EXPORT_ROOT).viewing_events())
-    # Viewing History: 6 rows, the 0-second trailer-preview row skipped -> 5.
+    # Viewing History: 7 rows, the 0-second trailer-preview row skipped -> 6.
     # Watch Events adds "Hidden Gem Special", the all-caps "NOT AVAILABLE" placeholder
     # (falls back to title "unknown"), and a rewatch of "The Grand Adventure: Season 2"
     # on a day Viewing History doesn't have; its same-day Watch Events row is deduped
     # against Viewing History, and the 0-second/"Not Available"/deleted rows are skipped.
-    assert len(events) == 8
+    assert len(events) == 9
     first = events[0]
     assert isinstance(first, ViewingEvent)
     assert isinstance(first.duration, timedelta)
@@ -38,6 +38,11 @@ def test_viewing_events():
 
     # Amazon's all-caps "NOT AVAILABLE" placeholder must fall back to "unknown" too
     assert not any(e.title == "NOT AVAILABLE" for e in events)
+
+    # Viewing History joins TV episodes as "<episode>-<series>"; Watch Events lists
+    # that same occasion under the bare episode title ("Pilot"), which must still be
+    # recognized as the same watch and not counted twice.
+    assert sum(1 for e in events if e.title in ("Pilot-Space Quest - Season 1", "Pilot")) == 1
 
     assert {e.profile for e in events} == {"ADULT", "CHILD", "unknown"}
 

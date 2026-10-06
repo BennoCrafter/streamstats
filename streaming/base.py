@@ -14,6 +14,7 @@ class ViewingEvent:
     title: str
     start_time: datetime
     duration: timedelta
+    service: str = ""
     device: Optional[str] = None
     country: Optional[str] = None
 

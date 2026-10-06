@@ -1,6 +1,7 @@
 """Prime Video implementation of StreamingService, reading the Amazon data export."""
 
 import csv
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterator, Optional
@@ -9,11 +10,25 @@ from .base import BillingEvent, StreamingService, ViewingEvent
 
 _PLACEHOLDERS = {"", "Not available", "Not Available", "NOT AVAILABLE"}
 
+# For TV episodes, Viewing History's Title joins "<episode>-<series> - Season N" with
+# no spaces around that one dash (the season's own " - " keeps its spaces), while Watch
+# Events lists the bare episode title. Recover it so the same occasion matches across
+# both files.
+# ponytail: naive heuristic - a movie title with its own unspaced dash (e.g. "Mord im
+# Orient-Express") parses as a false "episode" alias; harmless unless Watch Events has
+# an unrelated title of that exact fragment on the same day. Tighten if that collides.
+_EPISODE_SPLIT = re.compile(r"^(.+[^ ])-[^ ].*$")
+
 
 def _clean(value: str) -> Optional[str]:
     """Amazon's export wraps string fields in an extra layer of quotes; strip and nullify placeholders."""
     value = value.strip('"')
     return value if value not in _PLACEHOLDERS else None
+
+
+def _episode_title(title: str) -> Optional[str]:
+    match = _EPISODE_SPLIT.match(title)
+    return match.group(1) if match else None
 
 
 class PrimeVideoService(StreamingService):
@@ -43,11 +58,15 @@ class PrimeVideoService(StreamingService):
                 title = _clean(row["Title"]) or "unknown"
                 start_time = datetime.strptime(row["Playback Start Datetime (UTC)"], "%Y-%m-%dT%H:%M:%SZ")
                 seen.add((title, start_time.date()))
+                episode = _episode_title(title)
+                if episode:
+                    seen.add((episode, start_time.date()))
                 yield ViewingEvent(
                     profile=_clean(row["Profile Type"]) or "unknown",
                     title=title,
                     start_time=start_time,
                     duration=timedelta(seconds=seconds),
+                    service=self.name,
                     device=_clean(row["Device Model"]),
                     country=_clean(row["Country Code"]),
                 )
@@ -74,6 +93,7 @@ class PrimeVideoService(StreamingService):
                     title=title,
                     start_time=start_time,
                     duration=timedelta(seconds=float(seconds_raw)),
+                    service=self.name,
                 )
 
     def billing_events(self) -> Iterator[BillingEvent]:

@@ -29,6 +29,7 @@ class NetflixService(StreamingService):
                     title=row["Title"],
                     start_time=datetime.strptime(row["Start Time"], "%Y-%m-%d %H:%M:%S"),
                     duration=_parse_duration(row["Duration"]),
+                    service=self.name,
                     device=row["Device Type"] or None,
                     country=row["Country"] or None,
                 )
