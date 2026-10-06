@@ -19,9 +19,14 @@ DATA_ROOT = ROOT / "raw_data"
 if not DATA_ROOT.exists():
     DATA_ROOT = ROOT / "sample_data"
 
+# Amazon's export has no price field for Prime Video - this is a roundabout estimate
+# of the monthly subscription cost (adjust to your plan/region), used to synthesize
+# billing events. Set to None to leave Prime Video unbilled, as before.
+PRIME_VIDEO_MONTHLY_PRICE = 8.99
+
 SERVICES = {
     "netflix": NetflixService(DATA_ROOT / "netflix"),
-    "primevideo": PrimeVideoService(DATA_ROOT / "primevideo"),
+    "primevideo": PrimeVideoService(DATA_ROOT / "primevideo", monthly_price=PRIME_VIDEO_MONTHLY_PRICE),
 }
 
 RANGE_OPTIONS = [

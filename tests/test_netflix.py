@@ -3,7 +3,7 @@ from pathlib import Path
 
 from streaming import BillingEvent, NetflixService, ViewingEvent
 
-EXPORT_ROOT = Path(__file__).parent / "sample_data" / "netflix"
+EXPORT_ROOT = Path(__file__).parent.parent / "sample_data" / "netflix"
 
 
 def test_viewing_events():
