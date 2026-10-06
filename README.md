@@ -1,4 +1,4 @@
-# streamstats
+# ![streamstats icon](static/favicon.svg) streamstats
 
 ![Dashboard preview](resources/stats-preview-framed.png)
 
@@ -16,7 +16,7 @@ Open http://127.0.0.1:8001. Without your own data, it uses `sample_data/`.
 
 ## Using your own data
 
-1. Request your export from [Netflix](https://www.netflix.com/account/getmyinfo) or [Prime Video](https://www.amazon.com/hz/privacy-central/data-requests/preview.html).
+1. Request your export from your wanted service (look at `streaming_services.md` for instructions)
 2. Unzip it into `raw_data/netflix/` or `raw_data/primevideo/`, keeping the original folder structure.
 3. Restart the app.
 
