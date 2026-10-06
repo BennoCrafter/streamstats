@@ -1,0 +1,7 @@
+"Profile Type","Country Code","Device Model","Playback Start Datetime (UTC)","Seconds Viewed","Title"
+"""ADULT""","""DE""",AppleTV,2023-05-01T20:00:00Z,7200,"""The Grand Adventure"""
+"""ADULT""","""DE""",AppleTV,2023-06-10T21:00:00Z,5400,"""The Grand Adventure: Season 2"""
+"""CHILD""","""DE""",FireTVStick,2023-07-02T10:00:00Z,1800,"""Cartoon Fun"""
+"""ADULT""","""AT""",iPad,2024-01-20T18:30:00Z,0,"""Trailer Preview"""
+"""ADULT""","""Not available""","""Not available""",2024-02-14T19:00:00Z,3600,"""Weekend Movie"""
+"""ADULT""","""DE""",AppleTV,2024-03-05T22:00:00Z,9000,"""The Grand Adventure: Season 3"""

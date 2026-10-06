@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>{{ service_name }} dashboard</h1>
+  <p class="subtitle">Built from your own account export &mdash; nothing leaves this machine.</p>
+
+  <div class="range-filter">
+    {% for key, label, _ in range_options %}
+    <a href="?range={{ key }}" class="{{ 'active' if key == range_key }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="kpi-row">
+    <div class="stat-tile">
+      <div class="label">Total watched</div>
+      <div class="value">{{ summary.total_hours }} h</div>
+      <div class="sublabel">{{ summary.duration_text }}</div>
+    </div>
+    {% if summary.has_billing %}
+    <div class="stat-tile">
+      <div class="label">Total spent</div>
+      <div class="value">{{ summary.total_spent }} {{ summary.currency }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Cost per hour watched</div>
+      <div class="value">{{ summary.cost_per_hour }} {{ summary.currency }}</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Months billed</div>
+      <div class="value">{{ summary.months_billed }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="charts">
+    <div class="card wide">
+      <h2>Viewing hours per month, by profile</h2>
+      {% if service_name == "Prime Video" %}
+      <p class="empty">Amazon's export only tags each view ADULT/CHILD, not a named profile like Netflix's &mdash; so this is really "by household role."</p>
+      {% endif %}
+      <div class="chart-wrap"><canvas id="hoursChart"></canvas></div>
+    </div>
+    {% if summary.has_billing %}
+    <div class="card">
+      <h2>Spend per month</h2>
+      <div class="chart-wrap"><canvas id="spendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Cost per hour watched, over time</h2>
+      <div class="chart-wrap"><canvas id="costPerHourChart"></canvas></div>
+    </div>
+    {% else %}
+    <div class="card wide">
+      <p class="empty">No billing data in this export &mdash; {{ service_name }} doesn't include per-service pricing.</p>
+    </div>
+    {% endif %}
+    <div class="card wide">
+      <h2>Most-watched shows (by hours)</h2>
+      <div class="chart-wrap"><canvas id="topTitlesChart"></canvas></div>
+    </div>
+    <div class="card wide">
+      <h2>What else you could have done with {{ summary.duration_text }}</h2>
+      <div class="kpi-row">
+        {% for label, count in summary.time_equivalents %}
+        <div class="stat-tile">
+          <div class="value">{{ count }}</div>
+          <div class="label">{{ label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card wide">
+      <h2>Everything watched</h2>
+      <div class="table-controls">
+        <input type="search" id="watchSearch" placeholder="Filter by title&hellip;">
+        <span class="count" id="watchCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="watch-table" id="watchTable">
+          <thead><tr><th>Title</th><th class="num">Hours</th><th class="num">Sessions</th><th>Last watched</th></tr></thead>
+          <tbody>
+            {% for row in watched_titles %}
+            <tr><td>{{ row.title }}</td><td class="num">{{ row.hours }}</td><td class="num">{{ row.sessions }}</td><td>{{ row.last_watched }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block script %}
+const hoursPerMonth = {{ hours_per_month | tojson }};
+const spendPerMonth = {{ spend_per_month | tojson }};
+const costPerHour   = {{ cost_per_hour | tojson }};
+const topTitles     = {{ top_titles | tojson }};
+const currency      = {{ summary.currency | tojson }};
+
+new Chart(document.getElementById('hoursChart'), {
+  type: 'line',
+  data: {
+    labels: hoursPerMonth.months,
+    datasets: Object.entries(hoursPerMonth.series).map(([profile, data], i) => ({
+      label: profile,
+      data,
+      borderColor: seriesColors[i % seriesColors.length],
+      backgroundColor: seriesColors[i % seriesColors.length],
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.15,
+    })),
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'hours' } } },
+  },
+});
+
+if (document.getElementById('spendChart')) {
+  new Chart(document.getElementById('spendChart'), {
+    type: 'bar',
+    data: {
+      labels: spendPerMonth.months,
+      datasets: [{
+        data: spendPerMonth.amounts,
+        backgroundColor: seriesColors[0],
+        borderRadius: 4,
+        maxBarThickness: 24,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+
+  new Chart(document.getElementById('costPerHourChart'), {
+    type: 'line',
+    data: {
+      labels: costPerHour.months,
+      datasets: [{
+        label: 'Cost per hour',
+        data: costPerHour.cost_per_hour,
+        borderColor: seriesColors[0],
+        backgroundColor: seriesColors[0],
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHitRadius: 12,
+        tension: 0.15,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y} ${currency}/h` } },
+      },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+}
+
+new Chart(document.getElementById('topTitlesChart'), {
+  type: 'bar',
+  data: {
+    labels: topTitles.map(([title]) => title),
+    datasets: [{
+      data: topTitles.map(([, hours]) => hours),
+      backgroundColor: seriesColors[0],
+      borderRadius: 4,
+      maxBarThickness: 24,
+    }],
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, title: { display: true, text: 'hours' } } },
+  },
+});
+
+wireTable('watchTable', 'watchSearch', 'watchCount');
+{% endblock %}
