@@ -143,6 +143,26 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  #month-dialog {
+    width: min(720px, 92vw);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+  #month-dialog::backdrop { background: rgba(0,0,0,0.4); }
+  #month-dialog h2 { font-size: 15px; margin: 0 0 14px; font-weight: 600; }
+  #month-dialog .table-wrap { max-height: 50vh; }
+  #month-dialog .btn {
+    margin-top: 14px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>

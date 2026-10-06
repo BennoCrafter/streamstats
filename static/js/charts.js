@@ -7,7 +7,10 @@ Chart.defaults.color = v('--text-secondary');
 Chart.defaults.borderColor = v('--gridline');
 
 // Draws a multi-series line chart (used for "hours per month, by X" on every dashboard).
-function lineChart(canvasId, labels, series, yLabel) {
+// titlesByMonth, if given, is {month: [{title, date, hours, service}, ...]} - clicking a
+// point opens a dialog listing everything watched that month. monthSpend/currency, if given,
+// show a combined spend total for that month in the dialog (for the multi-service overview).
+function lineChart(canvasId, labels, series, yLabel, titlesByMonth, monthSpend, currency) {
   return new Chart(document.getElementById(canvasId), {
     type: 'line',
     data: {
@@ -26,8 +29,39 @@ function lineChart(canvasId, labels, series, yLabel) {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       scales: { y: { beginAtZero: true, title: { display: !!yLabel, text: yLabel } } },
+      onClick: titlesByMonth ? (evt, _els, chart) => {
+        const points = chart.getElementsAtEventForMode(evt, 'index', { intersect: false }, true);
+        if (points.length) showMonthDialog(labels[points[0].index], titlesByMonth, monthSpend, currency);
+      } : undefined,
     },
   });
+}
+
+// Opens a <dialog> listing every title watched in `month` (from titlesByMonth, keyed "YYYY-MM"),
+// sorted by service then by watched length (longest first).
+function showMonthDialog(month, titlesByMonth, monthSpend, currency) {
+  const items = (titlesByMonth[month] || []).slice()
+    .sort((a, b) => a.service.localeCompare(b.service) || b.hours - a.hours);
+  let dialog = document.getElementById('month-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'month-dialog';
+    dialog.className = 'card';
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+    document.body.appendChild(dialog);
+  }
+  const spend = monthSpend && monthSpend[month];
+  const rows = items.map((i) => `<tr><td>${i.title}</td><td>${i.service}</td><td>${i.date}</td><td class="num">${i.hours}</td></tr>`).join('');
+  dialog.innerHTML = `
+    <form method="dialog">
+      <h2>${month}</h2>
+      ${spend ? `<p class="empty">Total spent this month: ${spend} ${currency}</p>` : ''}
+      ${items.length
+        ? `<div class="table-wrap"><table class="watch-table"><thead><tr><th>Title</th><th>Service</th><th>Date</th><th class="num">Hours</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : '<p class="empty">Nothing watched this month.</p>'}
+      <button class="btn" autofocus>Close</button>
+    </form>`;
+  dialog.showModal();
 }
 
 // Draws a horizontal bar chart from [label, value] pairs (used for "most-watched titles").

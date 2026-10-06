@@ -1,7 +1,7 @@
 const data = JSON.parse(document.getElementById('page-data').textContent);
-const { hoursPerMonth, spendPerMonth, costPerHour, topTitles, currency } = data;
+const { hoursPerMonth, titlesByMonth, spendPerMonth, costPerHour, topTitles, currency } = data;
 
-lineChart('hoursChart', hoursPerMonth.months, hoursPerMonth.series, 'hours');
+lineChart('hoursChart', hoursPerMonth.months, hoursPerMonth.series, 'hours', titlesByMonth);
 
 if (document.getElementById('spendChart')) {
   new Chart(document.getElementById('spendChart'), {

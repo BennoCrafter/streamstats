@@ -32,14 +32,30 @@ def hours_per_month_by_service(events_by_service: dict) -> dict:
     totals = defaultdict(lambda: defaultdict(float))
     for service, events in events_by_service.items():
         for e in events:
-            totals[_month_key(e.start_time)][service] += (
-                e.duration.total_seconds() / 3600
-            )
+            totals[_month_key(e.start_time)][service] += e.duration.total_seconds() / 3600
 
     months = sorted(totals)
     services = sorted(events_by_service)
     series = {s: [round(totals[m].get(s, 0.0), 2) for m in months] for s in services}
     return {"months": months, "series": series}
+
+
+def titles_by_month(events: Iterable[ViewingEvent]) -> dict:
+    """{month_key: [{"title", "date", "hours", "service"}, ...]}, each month's list date-sorted."""
+    by_month = defaultdict(list)
+    for e in events:
+        show, season = _show_name_and_season(e)
+        by_month[_month_key(e.start_time)].append(
+            {
+                "title": _display_title(show, {season} if season is not None else set()),
+                "date": e.start_time.date().isoformat(),
+                "hours": round(e.duration.total_seconds() / 3600, 2),
+                "service": e.service,
+            }
+        )
+    for rows in by_month.values():
+        rows.sort(key=lambda r: r["date"])
+    return by_month
 
 
 def spend_per_month(events: Iterable[BillingEvent]) -> dict:
@@ -52,9 +68,7 @@ def spend_per_month(events: Iterable[BillingEvent]) -> dict:
     return {"months": months, "amounts": [round(totals[m], 2) for m in months]}
 
 
-def cost_per_hour_per_month(
-    viewing_events: Iterable[ViewingEvent], billing_events: Iterable[BillingEvent]
-) -> dict:
+def cost_per_hour_per_month(viewing_events: Iterable[ViewingEvent], billing_events: Iterable[BillingEvent]) -> dict:
     """{"months": [...], "cost_per_hour": [...]}  (only months with both hours and spend)"""
     hours = defaultdict(float)
     for e in viewing_events:
@@ -67,9 +81,7 @@ def cost_per_hour_per_month(
     months = sorted(set(hours) & set(spend))
     return {
         "months": months,
-        "cost_per_hour": [
-            round(spend[m] / hours[m], 2) if hours[m] else None for m in months
-        ],
+        "cost_per_hour": [round(spend[m] / hours[m], 2) if hours[m] else None for m in months],
     }
 
 
@@ -85,7 +97,7 @@ _SEASON_SUFFIX = re.compile(r"^(.*?)\s*[-–:]\s*(?:Season|Staffel)\s*(\d+)\b.*$
 
 
 def _show_name_and_season(event: ViewingEvent) -> Tuple[str, Optional[int]]:
-    """"Pilot-Reacher - Season 2" -> ("Reacher", 2); "Show: Season 2: Ep" -> ("Show", 2)."""
+    """ "Pilot-Reacher - Season 2" -> ("Reacher", 2); "Show: Season 2: Ep" -> ("Show", 2)."""
     title = event.title
     rest = title
     if event.service == PrimeVideoService.name:
@@ -117,11 +129,7 @@ def top_titles(events: Iterable[ViewingEvent], n: int = 10) -> list:
             seasons[show].add(season)
 
     ranked = sorted(hours.items(), key=lambda kv: kv[1], reverse=True)
-    ranked = [
-        (_display_title(show, seasons[show]), round(h, 1))
-        for show, h in ranked
-        if round(h, 1) > 0
-    ]
+    ranked = [(_display_title(show, seasons[show]), round(h, 1)) for show, h in ranked if round(h, 1) > 0]
     return ranked[:n]
 
 
@@ -185,18 +193,13 @@ _TIME_EQUIVALENTS = [
 
 def time_equivalents(total_hours: float) -> list:
     """[(label, count), ...] - what else that many hours could have bought you."""
-    return [
-        (label, round(total_hours / per_unit, 1))
-        for label, per_unit in _TIME_EQUIVALENTS
-    ]
+    return [(label, round(total_hours / per_unit, 1)) for label, per_unit in _TIME_EQUIVALENTS]
 
 
 CINEMA_COST_PER_HOUR = 5.5
 
 
-def summary(
-    viewing_events: Iterable[ViewingEvent], billing_events: Iterable[BillingEvent]
-) -> dict:
+def summary(viewing_events: Iterable[ViewingEvent], billing_events: Iterable[BillingEvent]) -> dict:
     """Headline totals for the stat-tile row."""
     viewing_events = list(viewing_events)
     billing_events = list(billing_events)
@@ -204,9 +207,7 @@ def summary(
     total_hours = sum(e.duration.total_seconds() for e in viewing_events) / 3600
     total_spent = sum(e.amount for e in billing_events)
     currency = billing_events[0].currency if billing_events else ""
-    cost_per_hour = (
-        round(total_spent / total_hours, 2) if total_hours and billing_events else None
-    )
+    cost_per_hour = round(total_spent / total_hours, 2) if total_hours and billing_events else None
 
     return {
         "total_hours": round(total_hours, 1),
@@ -218,6 +219,5 @@ def summary(
         "cost_per_hour": cost_per_hour,
         "months_billed": len({_month_key(e.date) for e in billing_events}),
         "cinema_cost_per_hour": CINEMA_COST_PER_HOUR,
-        "cheaper_than_cinema": cost_per_hour is not None
-        and cost_per_hour < CINEMA_COST_PER_HOUR,
+        "cheaper_than_cinema": cost_per_hour is not None and cost_per_hour < CINEMA_COST_PER_HOUR,
     }

@@ -38,6 +38,9 @@
 {% block scripts %}
 <script type="application/json" id="page-data">{{ {
   "hoursPerMonth": hours_per_month,
+  "titlesByMonth": titles_by_month,
+  "spendPerMonth": spend_per_month,
+  "currency": summary.currency,
   "topTitles": top_titles,
 } | tojson }}</script>
 <script src="/static/js/overview.js"></script>
